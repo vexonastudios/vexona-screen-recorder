@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CSP (#24) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: file:; media-src 'self' file: blob: mediastream:;">
+  <title>Vexona Screen Recorder</title>
+  <!-- #22: Google Fonts with graceful degradation — CSS has Segoe UI/system fallbacks for offline -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+  <!-- Resize edges for frameless window (#6) -->
+  <div class="resize-edge resize-top"></div>
+  <div class="resize-edge resize-bottom"></div>
+  <div class="resize-edge resize-left"></div>
+  <div class="resize-edge resize-right"></div>
+  <div class="resize-edge resize-top-left"></div>
+  <div class="resize-edge resize-top-right"></div>
+  <div class="resize-edge resize-bottom-left"></div>
+  <div class="resize-edge resize-bottom-right"></div>
+
+  <!-- Custom Title Bar -->
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-logo">
+        <svg class="titlebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span class="titlebar-title" style="letter-spacing: 0.5px;"><span style="font-weight: 800; color: var(--accent-primary);">VEXONA</span> Screen Recorder</span>
+      </div>
+    </div>
+    <div class="titlebar-controls">
+      <!-- Hotkey cheatsheet -->
+      <button class="titlebar-btn titlebar-btn-hotkeys" id="btn-hotkeys" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+      </button>
+      <button class="titlebar-btn" id="btn-minimize" aria-label="Minimize">
+        <svg viewBox="0 0 12 12"><rect x="1" y="5.5" width="10" height="1" fill="currentColor"/></svg>
+      </button>
+      <button class="titlebar-btn" id="btn-maximize" aria-label="Maximize">
+        <svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" rx="1" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+      </button>
+      <button class="titlebar-btn titlebar-btn-close" id="btn-close" aria-label="Close">
+        <svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== HOTKEY CHEATSHEET MODAL ===== -->
+  <div class="modal-overlay" id="hotkey-modal" style="display:none;" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>⌨️ Keyboard Shortcuts</h2>
+        <button class="modal-close" id="btn-close-hotkeys" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="hotkey-section">
+          <h3>Recording</h3>
+          <div class="hotkey-row"><span>Start / Stop Recording</span><div class="hotkey-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>R</kbd></div></div>
+          <div class="hotkey-row"><span>Pause / Resume</span><div class="hotkey-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd></div></div>
+        </div>
+        <div class="hotkey-section">
+          <h3>Screenshots</h3>
+          <div class="hotkey-row"><span>Full Screen Screenshot</span><div class="hotkey-keys"><kbd>Print Screen</kbd></div></div>
+          <div class="hotkey-row"><span>Region Screenshot</span><div class="hotkey-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>S</kbd></div></div>
+        </div>
+        <div class="hotkey-section">
+          <h3>General</h3>
+          <div class="hotkey-row"><span>Open Shortcuts</span><div class="hotkey-keys"><kbd>?</kbd></div></div>
+          <div class="hotkey-row"><span>Tray Menu</span><div class="hotkey-keys"><span class="hotkey-note">Right-click tray icon</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-nav">
+        <button class="nav-item active" data-page="record" id="nav-record">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="4" fill="currentColor"/>
+          </svg>
+          <span class="nav-label">Record</span>
+        </button>
+        <button class="nav-item" data-page="screenshot" id="nav-screenshot">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span class="nav-label">Screenshot</span>
+        </button>
+        <button class="nav-item" data-page="gallery" id="nav-gallery">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span class="nav-label">Gallery</span>
+        </button>
+        <button class="nav-item" data-page="settings" id="nav-settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="nav-label">Settings</span>
+        </button>
+      </div>
+
+      <!-- Recording status indicator -->
+      <div class="sidebar-footer">
+        <div class="recording-indicator" id="recording-indicator" style="display:none;">
+          <div class="rec-dot"></div>
+          <span class="rec-text">REC</span>
+          <span class="rec-timer" id="rec-timer">00:00:00</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content" id="content">
+
+      <!-- ===== RECORD PAGE ===== -->
+      <section class="page active" id="page-record">
+        <div class="page-header compact-header">
+          <h1>Screen Recording</h1>
+        </div>
+
+        <!-- Top row: Source picker + Record button side by side -->
+        <div class="record-top-row">
+          <!-- Source Picker (compact) -->
+          <div class="card glass source-card-compact">
+            <div class="card-header">
+              <h2>Select Source</h2>
+              <button class="btn btn-ghost btn-sm" id="btn-refresh-sources">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Refresh
+              </button>
+            </div>
+            <div class="source-grid source-grid-compact" id="source-grid">
+              <div class="source-loading">
+                <div class="spinner"></div>
+                <span>Loading sources...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Record Controls (always visible) -->
+          <div class="record-action-panel">
+            <!-- Sound mute toggle -->
+            <button class="btn-sound-toggle" id="btn-sound-toggle" title="Sounds on — click to mute">
+              <span class="sound-icon">🔊</span>
+              <span class="sound-label">UI Sounds</span>
+            </button>
+            <div class="record-controls">
+              <button class="btn btn-record" id="btn-record" disabled>
+                <div class="btn-record-inner">
+                  <div class="rec-icon" id="rec-icon"></div>
+                </div>
+                <span id="btn-record-label">Start Recording</span>
+              </button>
+              <!-- U1: hint shown when no source is selected -->
+              <div class="source-hint" id="source-hint">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="18 15 12 9 6 15"/></svg>
+                Select a source above to begin
+              </div>
+              <button class="btn btn-pause" id="btn-pause" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                  <rect x="6" y="4" width="4" height="16" rx="1"/>
+                  <rect x="14" y="4" width="4" height="16" rx="1"/>
+                </svg>
+                <span id="btn-pause-label">Pause</span>
+              </button>
+            </div>
+
+            <button class="btn btn-region" id="btn-record-region" title="Select a region to record">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M6 2L2 6M2 2l4 4M18 2l4 4M22 2l-4 4M6 22l-4-4M2 22l4-4M18 22l4-4M22 22l-4-4"/>
+                <rect x="6" y="6" width="12" height="12" rx="1" stroke-dasharray="3 2"/>
+              </svg>
+              <span>Record Region</span>
+              <span class="region-badge" id="region-badge" style="display:none;"></span>
+            </button>
+
+            <!-- Region presets -->
+            <div class="region-presets-container">
+              <div class="presets-header">Preset Templates</div>
+              <div class="region-presets">
+                <button class="btn-preset" data-preset-region="1080x1920" data-preset-label="Mobile Portrait" title="Mobile portrait recording (1080×1920)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <rect x="5" y="2" width="14" height="20" rx="2"/>
+                    <line x1="12" y1="18" x2="12" y2="18" stroke-linecap="round" stroke-width="3"/>
+                  </svg>
+                  <span class="preset-name">Mobile</span>
+                  <span class="preset-dim">1080×1920</span>
+                </button>
+                <button class="btn-preset" data-preset-region="1920x1080" data-preset-label="Landscape HD" title="Standard 1080p landscape (1920×1080)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <line x1="8" y1="20" x2="16" y2="20"/>
+                  </svg>
+                  <span class="preset-name">Landscape</span>
+                  <span class="preset-dim">1920×1080</span>
+                </button>
+                <button class="btn-preset" data-preset-region="1080x1080" data-preset-label="Square" title="Square recording (1080×1080)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  </svg>
+                  <span class="preset-name">Square</span>
+                  <span class="preset-dim">1080×1080</span>
+                </button>
+              </div>
+            </div>
+            <!-- Quick options inline -->
+            <div class="quick-options">
+              <!-- Mic toggle + device picker -->
+              <div class="mic-option-group">
+                <label class="toggle-label-inline">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                  <span>Mic</span>
+                  <div class="toggle toggle-sm">
+                    <input type="checkbox" id="opt-mic-audio">
+                    <span class="toggle-slider"></span>
+                  </div>
+                </label>
+                <!-- Device selector — shown when mic is enabled -->
+                <div class="mic-device-row" id="mic-device-row" style="display:none;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="11" height="11" style="flex-shrink:0;opacity:0.5;"><circle cx="12" cy="12" r="3"/><path d="M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                  <select id="mic-device-select" class="select-input mic-device-select">
+                    <option value="">Default Microphone</option>
+                  </select>
+                </div>
+              </div>
+              <label class="toggle-label-inline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+                <span>System</span>
+                <div class="toggle toggle-sm">
+                  <input type="checkbox" id="opt-system-audio" checked>
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+            </div>
+            <div class="mic-level-container" id="mic-level-container" style="display:none;">
+              <div class="mic-level-header">
+                <span class="mic-live-dot" id="mic-live-dot"></span>
+                <span class="mic-level-title">Input Level</span>
+              </div>
+              <div class="mic-level-bar">
+                <div class="mic-level-fill" id="mic-level-fill"></div>
+              </div>
+              <!-- Gain control -->
+              <div class="mic-gain-row">
+                <span class="mic-gain-icon">🎚️</span>
+                <input type="range" id="mic-gain" class="mic-gain-slider"
+                  min="0" max="2" step="0.05" value="1">
+                <span class="mic-gain-label" id="mic-gain-label">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Output filename + auto-stop row -->
+          <div class="record-meta-row">
+            <div class="record-meta-field">
+              <label class="record-meta-label" for="output-filename">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                File name
+              </label>
+              <input type="text" id="output-filename" class="record-meta-input" placeholder="my-recording" maxlength="60">
+            </div>
+            <div class="record-meta-field record-meta-field-sm">
+              <label class="record-meta-label" for="opt-auto-stop">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Auto-stop
+              </label>
+              <select id="opt-auto-stop" class="select-input record-meta-select">
+                <option value="0">Never</option>
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="60">60 min</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Webcam overlay -->
+          <div class="webcam-section" id="webcam-section">
+            <div class="webcam-toggle-row">
+              <label class="toggle-label-inline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <span>Webcam Overlay</span>
+                <div class="toggle toggle-sm"><input type="checkbox" id="opt-webcam"><span class="toggle-slider"></span></div>
+              </label>
+            </div>
+            <div class="webcam-controls" id="webcam-controls" style="display:none;">
+              <select id="webcam-device" class="select-input webcam-select">
+                <option value="">Default Camera</option>
+              </select>
+              <div class="webcam-options">
+                <div class="webcam-option-group">
+                  <span class="webcam-option-label">Size</span>
+                  <div class="webcam-size-picker" id="webcam-size-picker">
+                    <button class="wsp-btn" data-value="160" title="Small — 160px">
+                      <span class="wsp-circle" style="width:14px;height:14px;"></span>
+                      <span class="wsp-label">S</span>
+                      <span class="wsp-dim">160px</span>
+                    </button>
+                    <button class="wsp-btn wsp-active" data-value="220" title="Medium — 220px">
+                      <span class="wsp-circle" style="width:19px;height:19px;"></span>
+                      <span class="wsp-label">M</span>
+                      <span class="wsp-dim">220px</span>
+                    </button>
+                    <button class="wsp-btn" data-value="300" title="Large — 300px">
+                      <span class="wsp-circle" style="width:26px;height:26px;"></span>
+                      <span class="wsp-label">L</span>
+                      <span class="wsp-dim">300px</span>
+                    </button>
+                  </div>
+                  <!-- Hidden select kept for compatibility with settings save/load -->
+                  <select id="webcam-size" style="display:none;">
+                    <option value="160">Small</option>
+                    <option value="220" selected>Medium</option>
+                    <option value="300">Large</option>
+                  </select>
+                </div>
+                <div class="webcam-option-group">
+                  <span class="webcam-option-label">Shape</span>
+                  <select id="webcam-shape" class="select-input select-xs">
+                    <option value="circle" selected>Circle</option>
+                    <option value="rounded">Rounded</option>
+                  </select>
+                </div>
+                <div class="webcam-option-group">
+                  <span class="webcam-option-label">Corner</span>
+                  <select id="webcam-corner" class="select-input select-xs">
+                    <option value="bottom-right" selected>↘ Bottom Right</option>
+                    <option value="bottom-left">↙ Bottom Left</option>
+                    <option value="top-right">↗ Top Right</option>
+                    <option value="top-left">↖ Top Left</option>
+                  </select>
+                </div>
+              </div>
+              <!-- Webcam live preview bubble -->
+              <div class="webcam-preview-wrap" id="webcam-preview-wrap">
+                <div class="webcam-preview-inner">
+                  <video id="webcam-preview" class="webcam-preview-vid" autoplay muted playsinline></video>
+                  <div class="webcam-preview-label">Preview</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Collapsible Options -->
+        <button class="options-toggle" id="options-toggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Recording Options</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+
+        <div class="options-panel" id="options-panel" style="display:none;">
+          <div class="options-row">
+            <div class="card glass option-card">
+              <h3>Cursor Effects</h3>
+              <div class="toggle-group">
+                <label class="toggle-label">
+                  <span>Highlight Cursor</span>
+                  <div class="toggle">
+                    <input type="checkbox" id="opt-cursor-highlight" checked>
+                    <span class="toggle-slider"></span>
+                  </div>
+                </label>
+                <label class="toggle-label">
+                  <span>Click Effects</span>
+                  <div class="toggle">
+                    <input type="checkbox" id="opt-click-effects" checked>
+                    <span class="toggle-slider"></span>
+                  </div>
+                </label>
+                <label class="toggle-label">
+                  <span>Auto-Zoom on Click</span>
+                  <div class="toggle">
+                    <input type="checkbox" id="opt-auto-zoom" checked>
+                    <span class="toggle-slider"></span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="card glass option-card">
+              <h3>Quality</h3>
+
+              <!-- YouTube Quick Preset -->
+              <button class="btn-yt-preset" id="btn-yt-preset" title="Apply YouTube-optimized recording settings">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
+                  <path d="M23.5 6.2a3.01 3.01 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3.01 3.01 0 0 0 .5 6.2 31.7 31.7 0 0 0 0 12a31.7 31.7 0 0 0 .5 5.8 3.01 3.01 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3.01 3.01 0 0 0 2.1-2.1A31.7 31.7 0 0 0 24 12a31.7 31.7 0 0 0-.5-5.8z"/>
+                  <polygon fill="white" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
+                </svg>
+                <div class="yt-preset-text">
+                  <span>YouTube Optimized</span>
+                  <span class="yt-preset-sub">1080p · 60fps · 12 Mbps VP9 · 192 kbps</span>
+                </div>
+              </button>
+
+              <div class="toggle-group">
+                <label class="select-label">
+                  <span>Resolution</span>
+                  <select id="opt-resolution" class="select-input">
+                    <option value="source">Source (Auto)</option>
+                    <option value="2160">4K UHD 2160p</option>
+                    <option value="1440">1440p QHD</option>
+                    <option value="1080">1080p FHD</option>
+                    <option value="720">720p HD</option>
+                  </select>
+                </label>
+                <label class="select-label">
+                  <span>Frame Rate</span>
+                  <select id="opt-framerate" class="select-input">
+                    <option value="60" selected>60 FPS</option>
+                    <option value="30">30 FPS</option>
+                    <option value="24">24 FPS</option>
+                  </select>
+                </label>
+                <label class="select-label">
+                  <span>Video Bitrate</span>
+                  <select id="opt-bitrate" class="select-input">
+                    <option value="auto" selected>Auto (Recommended)</option>
+                    <option value="40000000">40 Mbps  (4K)</option>
+                    <option value="15000000">15 Mbps  (High Quality)</option>
+                    <option value="12000000">12 Mbps  (YT 1080/60)</option>
+                    <option value="8000000">8 Mbps  (YT 1080/30)</option>
+                    <option value="5000000">5 Mbps  (720p)</option>
+                  </select>
+                </label>
+                <label class="select-label">
+                  <span>Audio Bitrate</span>
+                  <select id="opt-audio-bitrate" class="select-input">
+                    <option value="320000">320 kbps (Lossless)</option>
+                    <option value="192000" selected>192 kbps (YouTube)</option>
+                    <option value="128000">128 kbps (Standard)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Recording Preview (shows when recording) -->
+        <div class="card glass recording-preview" id="recording-preview" style="display:none;">
+          <div class="preview-header">
+            <h3>Recording Preview</h3>
+            <div class="preview-controls">
+              <span class="preview-filesize" id="preview-filesize"></span>
+              <span class="preview-time" id="preview-time">00:00:00</span>
+              <div class="preview-status" id="preview-status">
+                <div class="status-dot recording"></div>
+                <span>Recording</span>
+              </div>
+            </div>
+          </div>
+          <div class="preview-video-wrapper">
+            <video id="preview-video" muted autoplay></video>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SCREENSHOT PAGE ===== -->
+      <section class="page" id="page-screenshot">
+        <div class="page-header">
+          <h1>Screenshot</h1>
+          <p class="page-subtitle">Capture full screen, window, or custom region</p>
+        </div>
+
+        <div class="screenshot-actions">
+          <button class="action-card glass" id="btn-ss-fullscreen">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+            </div>
+            <h3>Full Screen</h3>
+            <p>Capture entire display</p>
+            <span class="hotkey-badge">PrtScn</span>
+          </button>
+
+          <button class="action-card glass" id="btn-ss-region">
+            <div class="action-icon accent-cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-dasharray="5,5"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+                <line x1="15" y1="3" x2="15" y2="21"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+              </svg>
+            </div>
+            <h3>Region Select</h3>
+            <p>Draw to capture area</p>
+            <span class="hotkey-badge">Ctrl+Shift+S</span>
+          </button>
+
+          <button class="action-card glass" id="btn-ss-window">
+            <div class="action-icon accent-emerald">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <h3>Window</h3>
+            <p>Capture specific window</p>
+          </button>
+
+          <!-- Fix #18: Use div instead of button to avoid select conflict -->
+          <div class="action-card glass" id="btn-ss-delayed" role="button" tabindex="0">
+            <div class="action-icon accent-amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <h3>Delayed</h3>
+            <p>Capture after countdown</p>
+            <div class="delay-select">
+              <select id="delay-seconds" class="select-input select-sm">
+                <option value="3">3s</option>
+                <option value="5">5s</option>
+                <option value="10">10s</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Screenshot Preview -->
+        <div class="card glass" id="screenshot-preview-card" style="display:none;">
+          <div class="card-header">
+            <h2>Last Capture</h2>
+            <div class="preview-actions">
+              <button class="btn btn-ghost btn-sm" id="btn-ss-copy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copy
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-ss-save">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Save
+              </button>
+            </div>
+          </div>
+          <div class="screenshot-preview-img">
+            <img id="screenshot-preview" alt="Screenshot preview"/>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== GALLERY PAGE ===== -->
+      <section class="page" id="page-gallery">
+        <div class="page-header">
+          <h1>Gallery</h1>
+          <p class="page-subtitle">All your captures in one place</p>
+        </div>
+
+        <div class="gallery-toolbar">
+          <div class="gallery-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="recording">Recordings</button>
+            <button class="filter-btn" data-filter="screenshot">Screenshots</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-open-folder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            Open Folder
+          </button>
+        </div>
+
+        <div class="gallery-grid" id="gallery-grid">
+          <div class="gallery-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" opacity="0.4">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <p>No captures yet</p>
+            <span>Start recording or take a screenshot to see your captures here</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SETTINGS PAGE ===== -->
+      <section class="page" id="page-settings">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p class="page-subtitle">Configure Vexona Screen Recorder to your workflow</p>
+        </div>
+
+        <div class="settings-sections">
+          <div class="card glass settings-card">
+            <h3>Save Locations</h3>
+            <div class="setting-item">
+              <label>Recordings</label>
+              <div class="path-row">
+                <div class="path-display" id="path-recordings">~/Videos/Vexona Screen Recorder</div>
+                <button class="btn btn-ghost btn-sm" id="btn-browse-recordings">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Browse
+                </button>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>Screenshots</label>
+              <div class="path-row">
+                <div class="path-display" id="path-screenshots">~/Pictures/Vexona Screen Recorder</div>
+                <button class="btn btn-ghost btn-sm" id="btn-browse-screenshots">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Browse
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass settings-card">
+            <h3>Recording Defaults</h3>
+            <div class="setting-item">
+              <label>Cursor Highlight Color</label>
+              <div class="color-picker-row">
+                <input type="color" id="cursor-color" value="#059669" class="color-input">
+                <!-- U7: live swatch + label that updates on input -->
+                <span class="color-swatch" id="cursor-color-swatch" style="background:#059669;"></span>
+                <span class="color-label" id="cursor-color-label">#059669</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>Cursor Highlight Size</label>
+              <input type="range" id="cursor-size" min="20" max="80" value="40" class="range-input">
+              <span class="range-value" id="cursor-size-value">40px</span>
+            </div>
+            <div class="setting-item">
+              <label>Auto-Zoom Level</label>
+              <select id="zoom-level" class="select-input">
+                <option value="1.35" selected>1.35x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label>Zoom Duration</label>
+              <select id="zoom-duration" class="select-input">
+                <option value="300">Fast (300ms)</option>
+                <option value="400" selected>Normal (400ms)</option>
+                <option value="500">Moderate (500ms)</option>
+                <option value="800">Slow (800ms)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card glass settings-card">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcut-list">
+              <div class="shortcut-item">
+                <span>Full Screen Screenshot</span>
+                <kbd>PrtScn</kbd>
+              </div>
+              <div class="shortcut-item">
+                <span>Region Screenshot</span>
+                <kbd>Ctrl+Shift+S</kbd>
+              </div>
+              <div class="shortcut-item">
+                <span>Start/Stop Recording</span>
+                <kbd>Ctrl+Shift+R</kbd>
+              </div>
+              <div class="shortcut-item">
+                <span>Pause/Resume</span>
+                <kbd>Ctrl+Shift+P</kbd>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass settings-card">
+            <h3>About</h3>
+            <div class="about-info">
+              <div class="about-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="url(#aboutGrad)" stroke-width="2" width="40" height="40">
+                  <defs>
+                    <linearGradient id="aboutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#059669"/>
+                      <stop offset="100%" stop-color="#06b6d4"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                <div>
+                  <strong>Vexona Screen Recorder</strong>
+                  <span>Version 1.0.0</span>
+                </div>
+              </div>
+              <p class="about-desc">Professional screen capture & recording. A Vexona Studios product.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Countdown Overlay -->
+  <div class="countdown-overlay" id="countdown-overlay" style="display:none;">
+    <div class="countdown-number" id="countdown-number">3</div>
+  </div>
+
+  <script src="js/sounds.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/screenshots.js"></script>
+  <script src="js/gallery.js"></script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Region Selection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      cursor: crosshair;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      user-select: none;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* ── Selection Box ── */
+    .selection {
+      position: absolute;
+      border: 2px solid #059669;
+      background: rgba(5, 150, 105, 0.06);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+      display: none;
+      cursor: move;
+    }
+
+    .selection.confirmed {
+      background: rgba(5, 150, 105, 0.03);
+    }
+
+    /* Corner resize handles */
+    .handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #059669;
+      border: 1.5px solid #fff;
+      border-radius: 2px;
+      display: none;
+      z-index: 5;
+    }
+    .selection.confirmed .handle { display: block; }
+
+    .handle-tl { top: -5px; left: -5px; cursor: nw-resize; }
+    .handle-tr { top: -5px; right: -5px; cursor: ne-resize; }
+    .handle-bl { bottom: -5px; left: -5px; cursor: sw-resize; }
+    .handle-br { bottom: -5px; right: -5px; cursor: se-resize; }
+    .handle-t  { top: -5px; left: 50%; margin-left: -5px; cursor: n-resize; }
+    .handle-b  { bottom: -5px; left: 50%; margin-left: -5px; cursor: s-resize; }
+    .handle-l  { top: 50%; left: -5px; margin-top: -5px; cursor: w-resize; }
+    .handle-r  { top: 50%; right: -5px; margin-top: -5px; cursor: e-resize; }
+
+    /* Dimension label */
+    .dim-label {
+      position: absolute;
+      background: #059669;
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      pointer-events: none;
+      white-space: nowrap;
+      display: none;
+    }
+
+    /* Instructions banner */
+    .instructions {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(19, 19, 26, 0.92);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 10px 20px;
+      color: #f1f5f9;
+      font-size: 13px;
+      font-weight: 500;
+      pointer-events: none;
+      animation: fadeIn 0.3s ease;
+      z-index: 20;
+      transition: opacity 0.3s ease;
+    }
+    .instructions.hidden { opacity: 0; pointer-events: none; }
+
+    kbd {
+      background: rgba(124,58,237,0.3);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin: 0 2px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* ── Floating Toolbar ── */
+    .toolbar {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: rgba(10, 10, 15, 0.94);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.03);
+      z-index: 30;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toolbar.visible { display: flex; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toolbar-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .toolbar-btn svg { width: 16px; height: 16px; }
+
+    .btn-record-go {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      border-color: rgba(239, 68, 68, 0.3);
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+    }
+    .btn-record-go:hover {
+      background: linear-gradient(135deg, #f87171, #ef4444);
+      box-shadow: 0 4px 24px rgba(239, 68, 68, 0.5);
+      transform: scale(1.03);
+    }
+
+    .btn-redraw {
+      background: rgba(255, 255, 255, 0.06);
+      color: #94a3b8;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .btn-redraw:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: #64748b;
+      border: none;
+      padding: 8px 10px;
+    }
+    .btn-cancel:hover { color: #94a3b8; }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .toolbar-dim {
+      font-size: 12px;
+      font-weight: 700;
+      color: #34d399;
+      font-variant-numeric: tabular-nums;
+      padding: 0 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlay">
+    <div class="selection" id="selection">
+      <div class="handle handle-tl" data-handle="tl"></div>
+      <div class="handle handle-tr" data-handle="tr"></div>
+      <div class="handle handle-bl" data-handle="bl"></div>
+      <div class="handle handle-br" data-handle="br"></div>
+      <div class="handle handle-t"  data-handle="t"></div>
+      <div class="handle handle-b"  data-handle="b"></div>
+      <div class="handle handle-l"  data-handle="l"></div>
+      <div class="handle handle-r"  data-handle="r"></div>
+    </div>
+    <div class="dim-label" id="dim-label">0 × 0</div>
+    <div class="instructions" id="instructions">Click and drag to select the recording region • Press <kbd>Esc</kbd> to cancel</div>
+  </div>
+
+  <!-- Floating toolbar — appears after selection -->
+  <div class="toolbar" id="toolbar">
+    <span class="toolbar-dim" id="toolbar-dim">0 × 0</span>
+    <div class="toolbar-divider"></div>
+    <button class="toolbar-btn btn-redraw" id="btn-redraw" title="Draw a new region">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Redraw
+    </button>
+    <button class="toolbar-btn btn-record-go" id="btn-record-go">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="7"/>
+      </svg>
+      Record
+    </button>
+    <button class="toolbar-btn btn-cancel" id="btn-cancel" title="Cancel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    const overlay = document.getElementById('overlay');
+    const selection = document.getElementById('selection');
+    const dimLabel = document.getElementById('dim-label');
+    const instructions = document.getElementById('instructions');
+    const toolbar = document.getElementById('toolbar');
+    const toolbarDim = document.getElementById('toolbar-dim');
+
+    let startX, startY;
+    let isDrawing = false;
+    let isConfirmed = false;
+    let isDragging = false;
+    let isResizing = false;
+    let resizeHandle = null;
+    let dragOffsetX, dragOffsetY;
+    let resizeStartRect = null;
+    let resizeStartMouse = null;
+
+    // Current region
+    let region = { x: 0, y: 0, w: 0, h: 0 };
+
+    function updateRegionDisplay() {
+      selection.style.left = `${region.x}px`;
+      selection.style.top = `${region.y}px`;
+      selection.style.width = `${region.w}px`;
+      selection.style.height = `${region.h}px`;
+
+      dimLabel.style.left = `${region.x}px`;
+      dimLabel.style.top = `${region.y + region.h + 8}px`;
+      dimLabel.textContent = `${region.w} × ${region.h}`;
+
+      toolbarDim.textContent = `${region.w} × ${region.h}`;
+    }
+
+    function confirmSelection() {
+      isConfirmed = true;
+      isDrawing = false;
+      selection.classList.add('confirmed');
+      dimLabel.style.display = 'none';
+      instructions.classList.add('hidden');
+      toolbar.classList.add('visible');
+      overlay.style.cursor = 'default';
+    }
+
+    function resetToDrawing() {
+      isConfirmed = false;
+      selection.style.display = 'none';
+      selection.classList.remove('confirmed');
+      dimLabel.style.display = 'none';
+      toolbar.classList.remove('visible');
+      instructions.classList.remove('hidden');
+      overlay.style.cursor = 'crosshair';
+    }
+
+    // ── Drawing ──
+    overlay.addEventListener('mousedown', (e) => {
+      if (isConfirmed) {
+        // Check if clicking on the selection to drag it
+        const r = selection.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+          // Check for resize handle
+          const handle = e.target.closest('.handle');
+          if (handle) {
+            isResizing = true;
+            resizeHandle = handle.dataset.handle;
+            resizeStartRect = { ...region };
+            resizeStartMouse = { x: e.clientX, y: e.clientY };
+            return;
+          }
+          // Start dragging
+          isDragging = true;
+          dragOffsetX = e.clientX - region.x;
+          dragOffsetY = e.clientY - region.y;
+          return;
+        }
+        // Clicked outside selection — start new drawing
+        resetToDrawing();
+      }
+
+      // Start new drawing
+      startX = e.clientX;
+      startY = e.clientY;
+      isDrawing = true;
+      selection.style.display = 'block';
+      dimLabel.style.display = 'block';
+    });
+
+    overlay.addEventListener('mousemove', (e) => {
+      if (isResizing && resizeHandle) {
+        const dx = e.clientX - resizeStartMouse.x;
+        const dy = e.clientY - resizeStartMouse.y;
+        const r = { ...resizeStartRect };
+
+        // Apply resize based on handle
+        if (resizeHandle.includes('r')) { r.w = Math.max(50, r.w + dx); }
+        if (resizeHandle.includes('l')) { r.x = r.x + dx; r.w = Math.max(50, r.w - dx); }
+        if (resizeHandle.includes('b')) { r.h = Math.max(50, r.h + dy); }
+        if (resizeHandle.includes('t')) { r.y = r.y + dy; r.h = Math.max(50, r.h - dy); }
+
+        region = r;
+        updateRegionDisplay();
+        return;
+      }
+
+      if (isDragging) {
+        region.x = Math.max(0, Math.min(e.clientX - dragOffsetX, window.innerWidth - region.w));
+        region.y = Math.max(0, Math.min(e.clientY - dragOffsetY, window.innerHeight - region.h));
+        updateRegionDisplay();
+        return;
+      }
+
+      if (!isDrawing) return;
+      const x = Math.min(startX, e.clientX);
+      const y = Math.min(startY, e.clientY);
+      const w = Math.abs(e.clientX - startX);
+      const h = Math.abs(e.clientY - startY);
+
+      region = { x, y, w, h };
+      updateRegionDisplay();
+      selection.style.display = 'block';
+      dimLabel.style.display = 'block';
+    });
+
+    overlay.addEventListener('mouseup', (e) => {
+      if (isResizing) { isResizing = false; resizeHandle = null; return; }
+      if (isDragging) { isDragging = false; return; }
+      if (!isDrawing) return;
+      isDrawing = false;
+
+      if (region.w > 20 && region.h > 20) {
+        confirmSelection();
+      } else {
+        selection.style.display = 'none';
+        dimLabel.style.display = 'none';
+      }
+    });
+
+    // ── Toolbar Actions ──
+    document.getElementById('btn-record-go').addEventListener('click', () => {
+      if (region.w > 10 && region.h > 10) {
+        window.snapforge.regionRecordStart({ x: region.x, y: region.y, width: region.w, height: region.h });
+      }
+    });
+
+    document.getElementById('btn-redraw').addEventListener('click', () => {
+      resetToDrawing();
+    });
+
+    document.getElementById('btn-cancel').addEventListener('click', () => {
+      window.snapforge.regionCancelled();
+    });
+
+    // ── Keyboard ──
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.snapforge.regionCancelled();
+      }
+      if (e.key === 'Enter' && isConfirmed && region.w > 10 && region.h > 10) {
+        window.snapforge.regionRecordStart({ x: region.x, y: region.y, width: region.w, height: region.h });
+      }
+    });
+  </script>
+</body>
+</html>

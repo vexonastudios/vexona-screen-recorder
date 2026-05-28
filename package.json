@@ -1,0 +1,15 @@
+{
+  "name": "vexona-screen-recorder",
+  "version": "1.0.0",
+  "description": "Professional screen capture & recording by Vexona Studios",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "author": "Vexona Studios",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^42.3.0"
+  }
+}

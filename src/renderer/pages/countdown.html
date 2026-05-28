@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Countdown</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .countdown-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(5, 150, 105, 0.4);
+      box-shadow:
+        0 0 60px rgba(5, 150, 105, 0.25),
+        0 0 120px rgba(5, 150, 105, 0.1),
+        0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .countdown-number {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      color: white;
+      text-shadow: 0 0 40px rgba(5, 150, 105, 0.5);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    @keyframes countdownPulse {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+      35% {
+        transform: scale(1.08);
+        opacity: 1;
+      }
+      60% {
+        transform: scale(0.98);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 0.85;
+      }
+    }
+
+    @keyframes ringPulse {
+      0% {
+        box-shadow:
+          0 0 60px rgba(5, 150, 105, 0.25),
+          0 0 120px rgba(5, 150, 105, 0.1),
+          0 20px 60px rgba(0, 0, 0, 0.5);
+        border-color: rgba(5, 150, 105, 0.6);
+      }
+      100% {
+        box-shadow:
+          0 0 40px rgba(5, 150, 105, 0.15),
+          0 0 80px rgba(5, 150, 105, 0.05),
+          0 20px 60px rgba(0, 0, 0, 0.5);
+        border-color: rgba(5, 150, 105, 0.3);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="countdown-container" id="container">
+    <div class="countdown-number" id="number">3</div>
+  </div>
+
+  <script>
+    const numberEl = document.getElementById('number');
+    const container = document.getElementById('container');
+
+    if (window.snapforge) {
+      window.snapforge.onCountdownTick((num) => {
+        numberEl.textContent = num;
+        // Reset animation
+        numberEl.style.animation = 'none';
+        container.style.animation = 'none';
+        numberEl.offsetHeight; // force reflow
+        numberEl.style.animation = 'countdownPulse 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+        container.style.animation = 'ringPulse 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+      });
+    }
+  </script>
+</body>
+</html>
