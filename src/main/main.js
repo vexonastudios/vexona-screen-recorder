@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, desktopCapturer, globalShortcut, Tray, Menu
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { autoUpdater } = require('electron-updater');
 
 // Keep references to prevent garbage collection
 let mainWindow = null;
@@ -698,6 +699,27 @@ function destroyCountdownWindow() {
   if (countdownWindow) { countdownWindow.close(); countdownWindow = null; }
 }
 
+// Auto-updater events
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available.', info);
+});
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded.', info);
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update Ready',
+    message: 'A new version of Vexona Screen Recorder has been downloaded. Restart the application to apply the updates.',
+    buttons: ['Restart', 'Later']
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+autoUpdater.on('error', (err) => {
+  console.error('Error in auto-updater.', err);
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   loadSettings();
@@ -705,6 +727,13 @@ app.whenReady().then(() => {
   createMainWindow();
   createTray();
   registerHotkeys();
+
+  // Check for updates
+  try {
+    autoUpdater.checkForUpdatesAndNotify();
+  } catch (e) {
+    console.error('Auto-updater error on startup:', e);
+  }
 });
 
 app.on('window-all-closed', () => { /* keep tray alive */ });
