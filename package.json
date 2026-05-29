@@ -1,6 +1,6 @@
 {
   "name": "vexona-screen-recorder",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Professional screen capture & recording by Vexona Studios",
   "main": "src/main/main.js",
   "scripts": {
@@ -28,7 +28,8 @@
       {
         "provider": "github",
         "owner": "vexonastudios",
-        "repo": "vexona-screen-recorder"
+        "repo": "vexona-screen-recorder",
+        "releaseType": "release"
       }
     ]
   },
