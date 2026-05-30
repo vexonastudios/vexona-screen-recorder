@@ -2034,6 +2034,79 @@ kbd {
 
 .toast.warning { border-left: 3px solid var(--accent-amber); }
 
+/* Screenshot toast — wider, stacked layout with action buttons */
+.screenshot-toast {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  min-width: 280px;
+  max-width: 340px;
+}
+
+.screenshot-toast-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.screenshot-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.screenshot-toast-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Consolas', monospace;
+}
+
+.screenshot-toast-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.screenshot-toast-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.screenshot-toast-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.screenshot-toast-btn.primary {
+  background: rgba(5, 150, 105, 0.18);
+  border-color: rgba(5, 150, 105, 0.4);
+  color: var(--accent-primary-light);
+}
+
+.screenshot-toast-btn.primary:hover {
+  background: rgba(5, 150, 105, 0.3);
+  border-color: rgba(5, 150, 105, 0.7);
+  color: #fff;
+}
+
+
 /* ---------- Countdown Overlay ---------- */
 .countdown-overlay {
   position: fixed;

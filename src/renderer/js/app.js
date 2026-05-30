@@ -92,7 +92,7 @@ class App {
 
     window.snapforge.onScreenshotSaved((data) => {
       window.soundEngine?.playShutter();
-      App.showToast('Screenshot saved!', 'success');
+      App.showScreenshotToast(data?.filePath);
     });
   }
 
@@ -231,6 +231,70 @@ class App {
       toast.classList.add('hiding');
       setTimeout(() => toast.remove(), 300);
     }, duration);
+  }
+
+  // ── Screenshot Toast (with action buttons) ──
+  static showScreenshotToast(filePath) {
+    window.soundEngine?.playSaveSuccess();
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast success screenshot-toast';
+
+    // Icon
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'toast-icon';
+    iconSpan.textContent = '📸';
+
+    // Message block
+    const msgBlock = document.createElement('div');
+    msgBlock.className = 'screenshot-toast-msg';
+
+    const title = document.createElement('span');
+    title.className = 'screenshot-toast-title';
+    title.textContent = 'Screenshot saved!';
+
+    const sub = document.createElement('span');
+    sub.className = 'screenshot-toast-sub';
+    sub.textContent = filePath ? filePath.split(/[\\/]/).pop() : '';
+
+    msgBlock.appendChild(title);
+    if (filePath) msgBlock.appendChild(sub);
+
+    // Action buttons
+    const actions = document.createElement('div');
+    actions.className = 'screenshot-toast-actions';
+
+    if (filePath) {
+      const openBtn = document.createElement('button');
+      openBtn.className = 'screenshot-toast-btn primary';
+      openBtn.textContent = '🖼 Open Image';
+      openBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.snapforge.openFile(filePath);
+      });
+
+      const folderBtn = document.createElement('button');
+      folderBtn.className = 'screenshot-toast-btn';
+      folderBtn.textContent = '📁 Show in Folder';
+      folderBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.snapforge.openFolder(filePath);
+      });
+
+      actions.appendChild(openBtn);
+      actions.appendChild(folderBtn);
+    }
+
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgBlock);
+    toast.appendChild(actions);
+    container.appendChild(toast);
+
+    // Auto-dismiss after 7s (longer since it has actions)
+    setTimeout(() => {
+      toast.classList.add('hiding');
+      setTimeout(() => toast.remove(), 300);
+    }, 7000);
   }
 
   // ── Utilities ──
