@@ -1,6 +1,6 @@
 {
   "name": "vexona-screen-recorder",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Professional screen capture & recording by Vexona Studios",
   "main": "src/main/main.js",
   "scripts": {
@@ -19,6 +19,10 @@
       "target": [
         "nsis"
       ]
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "src/assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
