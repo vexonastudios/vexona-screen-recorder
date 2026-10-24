@@ -134,6 +134,12 @@ const timeout = setTimeout(() => {
   await win.webContents.executeJavaScript(
     `(async()=>{
   if(!window.snapforge||!window.recorder)throw Error('Sandboxed preload or app failed to initialize.');
+  const originalAdd = RecordingWriter.prototype.add;
+  RecordingWriter.prototype.add = function(blob) {
+    const index = this.__chunkNumber = (this.__chunkNumber || 0) + 1;
+    blob.slice(0,16).arrayBuffer().then(buffer => console.log('Native test: chunk '+JSON.stringify({ index, bytes:blob.size, type:blob.type, header:Array.from(new Uint8Array(buffer)).map(b=>b.toString(16).padStart(2,'0')).join('') })));
+    return originalAdd.call(this, blob);
+  };
   document.getElementById('opt-system-audio').checked=false;document.getElementById('opt-mic-audio').checked=false;
   window.__synthetic=document.createElement('canvas');__synthetic.width=640;__synthetic.height=360;window.__drawCount=0;
   window.__drawTimer=setInterval(()=>{const ctx=__synthetic.getContext('2d');ctx.fillStyle=__drawCount%2?'#1c6b44':'#f4e7ca';ctx.fillRect(0,0,640,360);ctx.fillStyle='#fff';ctx.font='40px sans-serif';ctx.fillText('Frame '+(++__drawCount),50,100);},33);
@@ -151,6 +157,7 @@ const timeout = setTimeout(() => {
   const running = await win.webContents.executeJavaScript(
     `({state:recorder.state,bytes:recorder.writer.bytes,frames:__drawCount,queued:recorder.writer.queuedBytes,background:document.visibilityState})`,
   );
+  console.log("Native test: running " + JSON.stringify(running));
   assert.equal(running.state, "recording");
   assert.ok(running.bytes > 1000, JSON.stringify(running));
   assert.ok(running.frames > 15, JSON.stringify(running));
