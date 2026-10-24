@@ -14,8 +14,8 @@ const header = Buffer.from("1a45dfa300010203040506070809", "hex");
 const png =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRdwAAAAASUVORK5CYII=";
 async function fixture(t) {
-  const root = await fs.mkdtemp(
-    path.join(os.tmpdir(), "vexona-recorder-test-"),
+  const root = await fs.realpath(
+    await fs.mkdtemp(path.join(os.tmpdir(), "vexona-recorder-test-")),
   );
   t.after(async () => {
     if (!path.basename(root).startsWith("vexona-recorder-test-"))

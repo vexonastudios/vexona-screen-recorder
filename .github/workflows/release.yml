@@ -13,6 +13,8 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,7 +47,7 @@ jobs:
             dist/*.exe
             dist/*.dmg
             dist/*.zip
-            dist/*.yml
+            dist/latest*.yml
             dist/*.blockmap
             dist/*SHA256*
             test-output/*.json
@@ -70,4 +72,4 @@ jobs:
         shell: bash
         run: |
           gh release create "$TAG" --draft --verify-tag --title "Vexona Screen Recorder $TAG" --generate-notes
-          find artifacts -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.zip' -o -name '*.yml' -o -name '*.blockmap' -o -name '*SHA256*' \) -print0 | xargs -0 gh release upload "$TAG"
+          find artifacts -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.zip' -o -name 'latest*.yml' -o -name '*.blockmap' -o -name '*SHA256*' \) -print0 | xargs -0 gh release upload "$TAG"

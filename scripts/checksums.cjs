@@ -3,7 +3,10 @@ const fs = require("node:fs"),
   { createHash } = require("node:crypto");
 const files = fs
   .readdirSync("dist")
-  .filter((name) => /\.(exe|dmg|zip|yml|blockmap)$/.test(name));
+  .filter(
+    (name) =>
+      /\.(exe|dmg|zip|blockmap)$/.test(name) || /^latest.*\.yml$/.test(name),
+  );
 const report = files.sort().map((name) => ({
   name,
   bytes: fs.statSync(path.join("dist", name)).size,
