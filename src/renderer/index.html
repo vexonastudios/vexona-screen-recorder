@@ -2,14 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: vexona-media:; media-src 'self' blob: mediastream: vexona-media:; connect-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- CSP (#24) -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: file:; media-src 'self' file: blob: mediastream:;">
   <title>Vexona Screen Recorder</title>
-  <!-- #22: Google Fonts with graceful degradation — CSS has Segoe UI/system fallbacks for offline -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Fonts are packaged system fallbacks; no remote font requests. -->
   <link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
@@ -136,6 +132,10 @@
           <h1>Screen Recording</h1>
         </div>
 
+        <p class="capture-summary" id="capture-summary">WebM video - Saved on this computer</p>
+        <p id="recording-status" class="capture-status" role="status" aria-live="polite">Ready to record.</p>
+        <section id="save-recovery" class="card" hidden aria-label="Recording needs attention"><h2>Your recording needs attention</h2><p id="save-error"></p><div class="recovery-actions"><button class="btn" id="retry-save">Retry save</button><button class="btn" id="retry-save-elsewhere">Save to another folder</button><button class="btn" id="keep-partial">Keep recoverable portion</button></div></section>
+        <section id="recoveries" class="card" hidden aria-label="Interrupted recordings"><h2>Recover interrupted recordings</h2><p>These contain the data successfully written before interruption. Review the recovered video; its ending may be incomplete.</p><button class="btn" id="refresh-recoveries">Refresh recoveries</button><div id="recovery-list"></div></section>
         <!-- Top row: Source picker + Record button side by side -->
         <div class="record-top-row">
           <!-- Source Picker (compact) -->
@@ -722,7 +722,7 @@
                 </svg>
                 <div>
                   <strong>Vexona Screen Recorder</strong>
-                  <span>Version 1.0.0</span>
+                  <span id="app-version">Screen Recorder</span>
                 </div>
               </div>
               <p class="about-desc">Professional screen capture & recording. A Vexona Studios product.</p>
@@ -743,6 +743,8 @@
 
   <script src="js/sounds.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/capture-runtime.js"></script>
+  <script src="js/recording-writer.js"></script>
   <script src="js/recorder.js"></script>
   <script src="js/screenshots.js"></script>
   <script src="js/gallery.js"></script>

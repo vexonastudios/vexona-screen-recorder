@@ -1,13 +1,16 @@
 {
   "name": "vexona-screen-recorder",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Professional screen capture & recording by Vexona Studios",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder",
-    "release": "electron-builder --publish always"
+    "build": "npm run check && npm test && electron-builder --publish never",
+    "release": "npm run check && npm test && electron-builder --publish never",
+    "test": "node --test tests/*.test.cjs",
+    "check": "node scripts/check.cjs",
+    "test:native": "node scripts/run-native.cjs"
   },
   "build": {
     "appId": "com.vexonastudios.screenrecorder",
@@ -18,11 +21,20 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "src/assets/icon.ico"
     },
     "mac": {
-      "target": ["dmg", "zip"],
-      "icon": "src/assets/icon.png"
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "src/assets/icon.png",
+      "extendInfo": {
+        "NSCameraUsageDescription": "Allow your webcam in a recording you choose to make.",
+        "NSMicrophoneUsageDescription": "Allow your microphone in recordings you choose to make.",
+        "NSAudioCaptureUsageDescription": "Allow system audio in recordings you choose to make."
+      }
     },
     "nsis": {
       "oneClick": false,
@@ -33,17 +45,22 @@
         "provider": "github",
         "owner": "vexonastudios",
         "repo": "vexona-screen-recorder",
-        "releaseType": "release"
+        "releaseType": "draft"
       }
+    ],
+    "files": [
+      "src/**/*",
+      "package.json"
     ]
   },
   "author": "Vexona Studios",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^42.3.0",
-    "electron-builder": "^26.8.1"
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0",
+    "prettier": "3.9.10"
   },
   "dependencies": {
-    "electron-updater": "^6.8.3"
+    "electron-updater": "6.8.11"
   }
 }

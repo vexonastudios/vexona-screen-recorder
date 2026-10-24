@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: vexona-media:; media-src 'self' blob: mediastream: vexona-media:; connect-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
   <title>Countdown</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -83,21 +84,6 @@
     <div class="countdown-number" id="number">3</div>
   </div>
 
-  <script>
-    const numberEl = document.getElementById('number');
-    const container = document.getElementById('container');
-
-    if (window.snapforge) {
-      window.snapforge.onCountdownTick((num) => {
-        numberEl.textContent = num;
-        // Reset animation
-        numberEl.style.animation = 'none';
-        container.style.animation = 'none';
-        numberEl.offsetHeight; // force reflow
-        numberEl.style.animation = 'countdownPulse 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-        container.style.animation = 'ringPulse 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
-      });
-    }
-  </script>
+  <script src="../js/countdown-window.js"></script>
 </body>
 </html>

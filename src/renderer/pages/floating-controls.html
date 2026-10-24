@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: vexona-media:; media-src 'self' blob: mediastream: vexona-media:; connect-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
   <title>Recording Controls</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -139,40 +139,6 @@
     </button>
   </div>
 
-  <script>
-    const timer = document.getElementById('timer');
-    const recDot = document.getElementById('rec-dot');
-    const statusLabel = document.getElementById('status-label');
-    const btnPause = document.getElementById('btn-pause');
-    const btnStop = document.getElementById('btn-stop');
-
-    let isPaused = false;
-
-    // Listen for timer updates from main process
-    window.snapforge.onTimerUpdate((time) => {
-      timer.textContent = time;
-    });
-
-    window.snapforge.onPauseStateChange((paused) => {
-      isPaused = paused;
-      recDot.className = paused ? 'rec-dot paused' : 'rec-dot';
-      statusLabel.className = paused ? 'status-label paused' : 'status-label';
-      statusLabel.textContent = paused ? 'PAUSED' : 'REC';
-
-      // Swap pause/resume icon
-      btnPause.innerHTML = paused
-        ? '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
-      btnPause.title = paused ? 'Resume' : 'Pause';
-    });
-
-    btnPause.addEventListener('click', () => {
-      window.snapforge.floatingAction('pause');
-    });
-
-    btnStop.addEventListener('click', () => {
-      window.snapforge.floatingAction('stop');
-    });
-  </script>
+  <script src="../js/floating-controls-window.js"></script>
 </body>
 </html>

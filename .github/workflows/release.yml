@@ -1,34 +1,73 @@
-name: Build and Release
-
+name: Recorder checks and release packages
 on:
+  pull_request:
   push:
-    tags:
-      - 'v*'
-
+    branches: [main]
+    tags: ["v*"]
 permissions:
-  contents: write
-
+  contents: read
 jobs:
-  release:
+  verify:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build and Publish Release
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm audit --audit-level=high
+      - run: npm run test:native
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        run: npx electron-builder --win nsis --x64 --publish never
+      - name: Build Apple Silicon packages
+        if: runner.os == 'macOS'
+        run: npx electron-builder --mac dmg zip --arm64 --publish never
+      - name: Test packaged Windows code
+        if: runner.os == 'Windows'
+        run: npm run test:native -- --app-root "dist/win-unpacked/resources/app.asar"
+      - name: Test packaged Mac code
+        if: runner.os == 'macOS'
+        run: npm run test:native -- --app-root "dist/mac-arm64/Vexona Screen Recorder.app/Contents/Resources/app.asar"
+      - run: node scripts/checksums.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recorder-${{ runner.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/*.yml
+            dist/*.blockmap
+            dist/*SHA256*
+            test-output/*.json
+            test-output/*.png
+          if-no-files-found: error
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: recorder-*
+          path: artifacts
+      - name: Stage verified packages as a draft
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --publish always
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          gh release create "$TAG" --draft --verify-tag --title "Vexona Screen Recorder $TAG" --generate-notes
+          find artifacts -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.zip' -o -name '*.yml' -o -name '*.blockmap' -o -name '*SHA256*' \) -print0 | xargs -0 gh release upload "$TAG"
