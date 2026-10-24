@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: vexona-media:; media-src 'self' blob: mediastream: vexona-media:; connect-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
   <title>Region Overlay</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -115,15 +116,6 @@
     </div>
   </div>
 
-  <script>
-    if (window.snapforge) {
-      window.snapforge.onRegionInfo((info) => {
-        const labelText = document.getElementById('label-text');
-        if (labelText && info) {
-          labelText.textContent = `REC ${info.width} × ${info.height}`;
-        }
-      });
-    }
-  </script>
+  <script src="../js/region-overlay-window.js"></script>
 </body>
 </html>

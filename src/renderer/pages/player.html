@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: vexona-media:; media-src 'self' blob: mediastream: vexona-media:; connect-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
   <title>Vexona Screen Recorder — Playback</title>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -127,26 +128,6 @@
     </div>
   </div>
 
-  <script>
-    const video = document.getElementById('video');
-
-    // Receive file path from main process
-    if (window.snapforge) {
-      window.snapforge.onPlayFile((filePath) => {
-        // Convert Windows path to file:// URL
-        const fileUrl = 'file:///' + filePath.replace(/\\/g, '/');
-        video.src = fileUrl;
-        document.getElementById('title').textContent = `Vexona Screen Recorder — ${filePath.split(/[\\/]/).pop()}`;
-      });
-
-      document.getElementById('btn-close').addEventListener('click', () => {
-        window.close();
-      });
-
-      document.getElementById('btn-folder').addEventListener('click', () => {
-        window.snapforge.showInFolder();
-      });
-    }
-  </script>
+  <script src="../js/player-window.js"></script>
 </body>
 </html>

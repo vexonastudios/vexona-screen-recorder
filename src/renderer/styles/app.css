@@ -2465,3 +2465,14 @@ kbd {
   opacity: 1;
   color: var(--text-secondary);
 }
+
+[hidden]{display:none!important}.capture-summary{color:var(--text-secondary,#a8b9ae);font-size:13px;margin:0 0 10px}.capture-status{min-height:28px;font-weight:600;color:#a8e9be;margin-bottom:16px}.recovery-actions{display:flex;flex-wrap:wrap;gap:10px}.recovery-row{padding:14px 0;border-top:1px solid #395043;overflow-wrap:anywhere}.recovery-row button{margin:6px 10px 0 0;min-height:44px}.source-item[role=button]:focus-visible{outline:3px solid #a8e9be;outline-offset:3px}#save-recovery,#recoveries{margin-bottom:20px;padding:22px}#save-recovery p,#recoveries p{margin:12px 0}.record-level{height:8px;background:#26392c;border-radius:8px;overflow:hidden}.record-level span{display:block;height:100%;width:0;background:#56d28b}.btn:disabled{opacity:.55;cursor:default}
+
+.source-picker{background:#17251d;color:#edf5eb;border:1px solid #49664d;border-radius:14px;width:min(900px,90vw);padding:24px}.source-picker::backdrop{background:#000b}.source-picker h2{margin-bottom:20px}.source-picker .source-grid{max-height:60vh;overflow:auto;margin-bottom:20px}
+
+/* Source cards keep their natural height beside the capture controls. */
+.record-top-row { grid-template-columns: minmax(0,1fr) 260px; align-items: start; }
+.source-grid.source-grid-compact { grid-template-columns: repeat(auto-fill,minmax(150px,1fr)); align-content: start; }
+.source-card-compact { min-width: 0; }
+.record-action-panel { gap: 12px; }
+@media (max-height:800px) { .record-action-panel { gap: 9px; padding: 14px; } .record-action-panel .btn-record-inner { width:60px; height:60px; } }
