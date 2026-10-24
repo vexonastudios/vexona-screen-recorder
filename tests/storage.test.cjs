@@ -218,3 +218,14 @@ test("a crash after atomic publication reconciles the same file and missing driv
   assert.equal(recoveries[0].unavailable, true);
   await assert.rejects(store.recover(next.id), /Reconnect/);
 });
+
+test("WebM header validation accepts fragmented headers and still rejects mismatches", async (t) => {
+  const { store } = await fixture(t),
+    { id } = await store.begin();
+  await store.append(id, 0, header.subarray(0, 1));
+  await assert.rejects(store.append(id, 1, Buffer.from([0])), /WebM/);
+  await store.append(id, 1, header.subarray(1, 3));
+  await store.append(id, 2, header.subarray(3));
+  const file = await store.finish(id);
+  assert.deepEqual(await fs.readFile(file), header);
+});

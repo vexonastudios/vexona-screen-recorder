@@ -1306,7 +1306,9 @@ class Recorder {
         }
       }
       if (!recorder) {
-        recorder = new MediaRecorder(this.compositeStream, recorderOptions);
+        throw Error(
+          "WebM recording is unavailable. Restart or update the app and try again.",
+        );
       }
       this.mediaRecorder = recorder;
 

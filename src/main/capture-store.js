@@ -158,8 +158,18 @@ class CaptureStore {
         return { next: s.next, bytes: s.bytes };
       if (sequence !== s.next)
         throw Error("Recording chunks arrived out of order.");
-      if (s.next === 0 && data.subarray(0, 4).toString("hex") !== "1a45dfa3")
-        throw Error("Expected WebM recording data.");
+      // A timeslice can divide even the container header. Validate the prefix
+      // across acknowledged slices instead of requiring four bytes in slice zero.
+      if (s.bytes < 4) {
+        const expected = Buffer.from("1a45dfa3", "hex");
+        const count = Math.min(4 - s.bytes, data.length);
+        if (
+          !data
+            .subarray(0, count)
+            .equals(expected.subarray(s.bytes, s.bytes + count))
+        )
+          throw Error("Expected WebM recording data.");
+      }
       // Roll back a partial write on error so Retry cannot duplicate a prefix.
       const offset = s.bytes;
       try {
