@@ -1,4 +1,4 @@
-// Native Electron regression test. Synthetic canvas/audio only; no screen or device access.
+// Native Electron regression test. Generated media only; no user desktop, camera or microphone.
 // The recorder window is shown without focus and truly minimized to test capture cadence.
 const electron = require("electron"),
   { app, BrowserWindow, ipcMain, protocol } = electron;
@@ -135,6 +135,7 @@ const timeout = setTimeout(() => {
   await win.webContents.executeJavaScript(
     `(async()=>{
   if(!window.snapforge||!window.recorder)throw Error('Sandboxed preload or app failed to initialize.');
+  window.__nativeGetMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
   const originalAdd = RecordingWriter.prototype.add;
   RecordingWriter.prototype.add = function(blob) {
     const index = this.__chunkNumber = (this.__chunkNumber || 0) + 1;
@@ -226,6 +227,78 @@ const timeout = setTimeout(() => {
     fs.readFileSync(audioTake.path).includes(Buffer.from("A_OPUS")),
     "Synthetic audio was not encoded.",
   );
+  let osWindowCapture = null;
+  if (process.platform === "win32") {
+    // Capture only this generated test window by its exact native id. Never
+    // enumerate or capture the user's screen, other windows, mic or camera.
+    const fixture = new BrowserWindow({
+      width: 640,
+      height: 360,
+      show: false,
+      title: "Vexona generated capture fixture",
+      autoHideMenuBar: true,
+      webPreferences: {
+        sandbox: true,
+        nodeIntegration: false,
+        contextIsolation: true,
+        backgroundThrottling: false,
+      },
+    });
+    windows.push(fixture);
+    await fixture.loadURL(
+      "data:text/html," +
+        encodeURIComponent(
+          `<!doctype html><title>Vexona generated capture fixture</title><style>body{margin:0;display:grid;place-items:center;height:100vh;color:white;font:30px sans-serif}</style><h1>Generated capture test</h1><script>let n=0;setInterval(()=>{document.body.style.background=['#164c39','#79421c','#173868'][n++%3];document.querySelector('h1').textContent='Test frame '+n;},100);</script>`,
+        ),
+    );
+    fixture.showInactive();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const source = fixture.getMediaSourceId();
+    assert.match(source, /^window:/);
+    console.log(
+      "Native test: recording the generated window through Windows capture",
+    );
+    await win.webContents.executeJavaScript(
+      `(async()=>{
+      document.getElementById('opt-system-audio').checked=false;
+      Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:__nativeGetMedia});
+      recorder.selectedSourceId=${JSON.stringify(source)};recorder.recordRegion=null;recorder.sourceBounds=null;
+      await recorder.setState('preparing');await recorder.startRecording();
+    })()`,
+      true,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+    await win.webContents.executeJavaScript(
+      `(async()=>{await recorder.stopRecording();})()`,
+    );
+    const take = await win.webContents.executeJavaScript(
+      `(async()=>{if(recorder.state!=='idle')throw Error('OS capture did not save');return(await snapforge.getCaptures())[0];})()`,
+    );
+    const encoded = fs.readFileSync(take.path).toString("base64");
+    osWindowCapture = await win.webContents.executeJavaScript(
+      `(async()=>{
+      const bytes=Uint8Array.from(atob(${JSON.stringify(encoded)}),c=>c.charCodeAt(0)),url=URL.createObjectURL(new Blob([bytes],{type:'video/webm'}));
+      const video=document.createElement('video');video.muted=true;video.src=url;document.body.appendChild(video);
+      await CaptureRuntime.playVideo(video);
+      const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;const ctx=canvas.getContext('2d'),colors=new Set();
+      const timer=setInterval(()=>{ctx.drawImage(video,video.videoWidth/4,video.videoHeight/2,1,1,0,0,1,1);colors.add(Array.from(ctx.getImageData(0,0,1,1).data).join(','));},40);
+      await new Promise(resolve=>setTimeout(resolve,900));clearInterval(timer);
+      const result={width:video.videoWidth,height:video.videoHeight,decodedFrames:video.getVideoPlaybackQuality().totalVideoFrames,distinctColors:colors.size};
+      video.pause();video.remove();URL.revokeObjectURL(url);return result;
+    })()`,
+      true,
+    );
+    assert.ok(osWindowCapture.width > 100 && osWindowCapture.height > 100);
+    assert.ok(
+      osWindowCapture.decodedFrames > 3,
+      JSON.stringify(osWindowCapture),
+    );
+    assert.ok(
+      osWindowCapture.distinctColors >= 2,
+      JSON.stringify(osWindowCapture),
+    );
+    fixture.destroy();
+  }
   // A second native window with the same preload still cannot call the owner's IPC.
   const foreign = new BrowserWindow({
     show: false,
@@ -258,6 +331,7 @@ const timeout = setTimeout(() => {
     electron: process.versions.electron,
     syntheticOnly: true,
     realWindowMinimized: true,
+    osWindowCapture,
     running,
     playback,
     forgedWindowDenied: denied,

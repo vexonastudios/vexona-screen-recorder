@@ -32,9 +32,10 @@ jobs:
       - name: Build Apple Silicon packages
         if: runner.os == 'macOS'
         run: npx electron-builder --mac dmg zip --arm64 --publish never
-      - name: Test packaged Windows code
+      - name: Test Windows install, installed code and uninstall
         if: runner.os == 'Windows'
-        run: npm run test:native -- --app-root "dist/win-unpacked/resources/app.asar"
+        shell: pwsh
+        run: ./scripts/test-install.ps1
       - name: Test packaged Mac code
         if: runner.os == 'macOS'
         run: npm run test:native -- --app-root "dist/mac-arm64/Vexona Screen Recorder.app/Contents/Resources/app.asar"
