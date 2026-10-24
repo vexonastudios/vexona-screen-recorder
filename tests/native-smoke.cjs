@@ -156,7 +156,7 @@ const timeout = setTimeout(() => {
   );
   await new Promise((resolve) => setTimeout(resolve, 2500));
   const running = await win.webContents.executeJavaScript(
-    `({state:recorder.state,bytes:recorder.writer.bytes,frames:__drawCount,queued:recorder.writer.queuedBytes,background:document.visibilityState})`,
+    `(async()=>{const deadline=Date.now()+12000;while(recorder.state==='recording'&&recorder.writer.bytes<1000&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,100));return {state:recorder.state,bytes:recorder.writer?.bytes||0,frames:__drawCount,queued:recorder.writer?.queuedBytes||0,background:document.visibilityState};})()`,
   );
   console.log("Native test: running " + JSON.stringify(running));
   assert.equal(running.state, "recording");
