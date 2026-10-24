@@ -1,4 +1,5 @@
 // Native Electron regression test. Synthetic canvas/audio only; no screen or device access.
+// The recorder window is shown without focus and truly minimized to test capture cadence.
 const electron = require("electron"),
   { app, BrowserWindow, ipcMain, protocol } = electron;
 const fs = require("node:fs"),
@@ -43,10 +44,9 @@ function TestWindow(options) {
   const win = new BrowserWindow({
     ...options,
     show: false,
-    webPreferences: { ...options.webPreferences, offscreen: true },
+    webPreferences: { ...options.webPreferences },
   });
   win.show = () => {};
-  win.minimize = () => win.hide();
   windows.push(win);
   return win;
 }
@@ -131,6 +131,7 @@ const timeout = setTimeout(() => {
       reject(Error(code + " " + description)),
     );
   });
+  win.showInactive();
   await win.webContents.executeJavaScript(
     `(async()=>{
   if(!window.snapforge||!window.recorder)throw Error('Sandboxed preload or app failed to initialize.');
@@ -159,6 +160,11 @@ const timeout = setTimeout(() => {
   );
   console.log("Native test: running " + JSON.stringify(running));
   assert.equal(running.state, "recording");
+  assert.equal(
+    win.isMinimized(),
+    true,
+    "The real native capture window did not minimize.",
+  );
   assert.ok(running.bytes > 1000, JSON.stringify(running));
   assert.ok(running.frames > 15, JSON.stringify(running));
   assert.ok(running.queued < 32 * 1024 * 1024);
@@ -239,7 +245,9 @@ const timeout = setTimeout(() => {
   await fsp.mkdir(path.resolve(__dirname, "../test-output"), {
     recursive: true,
   });
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  win.restore();
+  win.showInactive();
+  await new Promise((resolve) => setTimeout(resolve, 200));
   const image = await win.webContents.capturePage();
   await fsp.writeFile(
     path.resolve(__dirname, "../test-output/recorder-native.png"),
@@ -249,6 +257,7 @@ const timeout = setTimeout(() => {
     platform: process.platform,
     electron: process.versions.electron,
     syntheticOnly: true,
+    realWindowMinimized: true,
     running,
     playback,
     forgedWindowDenied: denied,

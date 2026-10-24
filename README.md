@@ -29,7 +29,7 @@ npm run test:native
 npm start
 ```
 
-The native test uses generated video frames and synthetic audio with hidden test windows. It exercises the real sandboxed preload, recording pipeline, disk writer and local playback protocol. It does not access the desktop, camera or microphone. Native tests also run against the packaged app archive on Windows and macOS.
+The native test uses generated video frames and synthetic audio in test windows that are shown without focus and minimized. It exercises the real sandboxed preload, recording pipeline, disk writer and local playback protocol. It does not access the desktop, camera or microphone. Native tests also run against the packaged app archive on Windows and macOS.
 
 ```sh
 npm run build
